@@ -15,8 +15,34 @@
 
 from flask import Flask
 from flask import request
+from pymongo import MongoClient
+from time import sleep
 import json
+import threading
+import signal
+import sys
 
+class LoopingThread:
+    def __init__(self, interval=1, live=False):
+        self.interval=interval
+        self.live=live        
+        self.thread = threading.Thread(target=self.run,args=())
+        self.thread.daemon=True
+        if live:
+            self.start()
+    def start(self):
+        self.live=True
+        self.thread.start()
+    def run(self):
+        count = 0
+        while self.live:
+            print("Loop: " + str(count))
+            count+=1
+            sleep(self.interval)
+        else:
+            print("Ending loop, closing resources...")
+    def stop(self):
+        self.live=False
 class HttpMessage:
     statusCode = 0
     data = ""
@@ -46,6 +72,37 @@ def helloWorld():
 
 @app.route('/test', methods=['GET','POST'])
 def test():
-    return HttpMessage(200,request.method).getJSON()
+    if not request.is_json:
+        return HttpMessage(400,"Payload is not of type json")
+    jsn = request.get_json()
+    if jsn is None:
+        return HttpMessage(400,"Bad payload")
+    return HttpMessage(200,jsn).getJSON()
 
+#Create mongo client
+mongoClient = MongoClient("jobdb.dev:27017")
+#Create primer database
+primerDB = mongoClient['primer']
+#Create dataset collection
+datasetCOLL = primerDB['dataset']
+#Add a document
+result = datasetCOLL.insert_one({"foo":"bar"})
+print(result.inserted_id)
+
+cursor = datasetCOLL.find({"_id":result.inserted_id})
+for doc in cursor:
+    print(doc)
+
+loopThread = LoopingThread()
+
+def signal_handler(signal, frame):
+        print('Shutting down...')
+        loopThread.stop()
+        sys.exit(0)
+
+signal.signal(signal.SIGINT, signal_handler)
+print('Press Ctrl+C')
+
+loopThread.start()
 app.run()
+
