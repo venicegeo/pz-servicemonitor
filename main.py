@@ -16,33 +16,12 @@
 from flask import Flask
 from flask import request
 #from pymongo import MongoClient
-from time import sleep
 import json
-import threading
 import signal
 import sys
+import loop
 
-class LoopingThread:
-    def __init__(self, interval=1, live=False):
-        self.interval=interval
-        self.live=live        
-        self.thread = threading.Thread(target=self.run,args=())
-        self.thread.daemon=True
-        if live:
-            self.start()
-    def start(self):
-        self.live=True
-        self.thread.start()
-    def run(self):
-        count = 0
-        while self.live:
-            print("Loop: " + str(count))
-            count+=1
-            sleep(self.interval)
-        else:
-            print("Ending loop, closing resources...")
-    def stop(self):
-        self.live=False
+
 class HttpMessage:
     statusCode = 0
     data = ""
@@ -98,7 +77,7 @@ def test():
 #for doc in cursor:
     #print(doc)
 
-loopThread = LoopingThread()
+loopThread = loop.LoopingThread()
 
 def signal_handler(signal, frame):
         print('Shutting down...')
@@ -109,5 +88,6 @@ signal.signal(signal.SIGINT, signal_handler)
 print('Press Ctrl+C')
 
 #loopThread.start()
-app.run()
+if __name__ =="__main__":
+    app.run()
 
