@@ -15,7 +15,7 @@
 
 from flask import Flask
 from flask import request
-from pymongo import MongoClient
+#from pymongo import MongoClient
 from time import sleep
 import json
 import threading
@@ -72,26 +72,31 @@ def helloWorld():
 
 @app.route('/test', methods=['GET','POST'])
 def test():
-    if not request.is_json:
-        return HttpMessage(400,"Payload is not of type json")
-    jsn = request.get_json()
-    if jsn is None:
-        return HttpMessage(400,"Bad payload")
-    return HttpMessage(200,jsn).getJSON()
+    if request.method == 'GET':
+        return HttpMessage(200,"GET").getJSON()
+    elif request.method == 'POST':
+        if not request.is_json:
+            return HttpMessage(400,"Payload is not of type json").getJSON()
+        jsn = request.get_json()
+        if jsn is None:
+            return HttpMessage(400,"Bad payload").getJSON()
+        return HttpMessage(200,jsn).getJSON()
+    else:
+        return HttpMessage(400,"Bad request").getJSON()
 
-#Create mongo client
-mongoClient = MongoClient("jobdb.dev:27017")
-#Create primer database
-primerDB = mongoClient['primer']
-#Create dataset collection
-datasetCOLL = primerDB['dataset']
-#Add a document
-result = datasetCOLL.insert_one({"foo":"bar"})
-print(result.inserted_id)
+##Create mongo client
+#mongoClient = MongoClient("jobdb.dev:27017")
+##Create primer database
+#primerDB = mongoClient['primer']
+##Create dataset collection
+#datasetCOLL = primerDB['dataset']
+##Add a document
+#result = datasetCOLL.insert_one({"foo":"bar"})
+#print(result.inserted_id)
 
-cursor = datasetCOLL.find({"_id":result.inserted_id})
-for doc in cursor:
-    print(doc)
+#cursor = datasetCOLL.find({"_id":result.inserted_id})
+#for doc in cursor:
+    #print(doc)
 
 loopThread = LoopingThread()
 
@@ -103,6 +108,6 @@ def signal_handler(signal, frame):
 signal.signal(signal.SIGINT, signal_handler)
 print('Press Ctrl+C')
 
-loopThread.start()
+#loopThread.start()
 app.run()
 
