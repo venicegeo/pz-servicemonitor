@@ -63,21 +63,7 @@ def test():
     else:
         return HttpMessage(400,"Bad request").getJSON()
 
-##Create mongo client
-#mongoClient = MongoClient("jobdb.dev:27017")
-##Create primer database
-#primerDB = mongoClient['primer']
-##Create dataset collection
-#datasetCOLL = primerDB['dataset']
-##Add a document
-#result = datasetCOLL.insert_one({"foo":"bar"})
-#print(result.inserted_id)
-
-#cursor = datasetCOLL.find({"_id":result.inserted_id})
-#for doc in cursor:
-    #print(doc)
-
-loopThread = loop.LoopingThread()
+loopThread = loop.LoopingThread(interval=10)
 
 def signal_handler(signal, frame):
         print('Shutting down...')
