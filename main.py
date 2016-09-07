@@ -15,7 +15,6 @@
 
 from flask import Flask
 from flask import request
-#from pymongo import MongoClient
 import json
 import signal
 import sys
@@ -73,7 +72,7 @@ def signal_handler(signal, frame):
 signal.signal(signal.SIGINT, signal_handler)
 print('Press Ctrl+C')
 
-#loopThread.start()
+loopThread.start()
 if __name__ =="__main__":
     app.run()
 
