@@ -27,11 +27,14 @@ class LoopingThread:
             self.mong=mongo.Mongo()
         else:
             self.mong=mong
+        if not self.mong.env_found():
+            live = False
         if live:
             self.start()
     def start(self):
-        self.live=True
-        self.thread.start()
+        if self.mong.env_found():
+            self.live=True
+            self.thread.start()
     def run(self):
         count = 0
         while self.live:

@@ -18,6 +18,8 @@ from flask import request
 import json
 import signal
 import sys
+import time
+import mongo
 import loop
 
 
@@ -42,11 +44,51 @@ class HttpMessage:
     def getHTML(self):
         return '<pre style="word-wrap: break-word; white-space: pre-wrap;">'+self.getJSON()+'</pre>'
 
-app = Flask(__name__)
+class AdminStats:
+    def __init__(self, createdAt=time.time(),online=0,degraded=0,failed=0,unknown=0):        
+        self.createdAt = createdAt
+        self.online=online
+        self.degraded=degraded
+        self.failed=failed
+        self.unknown=unknown
+    def update(self,mong):
+        self.online,self.degraded,self.failed,self.unknown = 0,0,0,0
+        services = mong.get_services()
+        for service in services:
+            meta = mongo.ResourceMetaDataInterface(**service.resourceMetadata)
+            av = None
+            try:
+                av = meta.availability
+            except:
+                pass
+            if av == None:
+                self.unknown+=1
+            elif av == mongo.ONLINE:
+                self.online+=1
+            elif av == mongo.DEGRADED:
+                self.degraded+=1
+            elif av == mongo.FAILED:
+                self.failed+=1
+            else:
+                self.unknown+=1
+    def getJSON(self):
+        return json.dumps(self.__dict__, indent=2)
 
-@app.route("/")
+
+app = Flask(__name__)
+mong = mongo.Mongo()
+loopThread = loop.LoopingThread(interval=10,mong=mong)
+
+adminStats = AdminStats()
+
+@app.route("/",methods=['GET'])
 def helloWorld():
     return HttpMessage().getJSON()
+    
+@app.route("/admin/stats", methods=['GET'])
+def adminStat():
+    adminStats.update(mong)
+    return adminStats.getJSON()
 
 @app.route('/test', methods=['GET','POST'])
 def test():
@@ -62,8 +104,6 @@ def test():
     else:
         return HttpMessage(400,"Bad request").getJSON()
 
-loopThread = loop.LoopingThread(interval=10)
-
 def signal_handler(signal, frame):
         print('Shutting down...')
         loopThread.stop()
@@ -72,7 +112,7 @@ def signal_handler(signal, frame):
 signal.signal(signal.SIGINT, signal_handler)
 print('Press Ctrl+C')
 
-loopThread.start()
 if __name__ =="__main__":
+    loopThread.start()
     app.run()
 
