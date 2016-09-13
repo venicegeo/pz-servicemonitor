@@ -13,36 +13,36 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import threading
-from time import sleep
-import mongo
-
-class LoopingThread:
-    def __init__(self, interval=1, live=False, mong=None):
-        self.interval=interval
-        self.live=live        
-        self.thread = threading.Thread(target=self.run,args=())
-        self.thread.daemon=True
-        if mong is None:
-            self.mong=mongo.Mongo()
-        else:
-            self.mong=mong
-        if not self.mong.env_found():
-            live = False
-        if live:
-            self.start()
-    def start(self):
-        if self.mong.env_found():
-            self.live=True
-            self.thread.start()
-    def run(self):
-        count = 0
-        while self.live:
-            print("Loop: " + str(count))
-            count+=1
-            self.mong.execute()
-            sleep(self.interval)
-        else:
-            print("Ending loop, closing resources...")
-    def stop(self):
-        self.live=False
+class ResourceMetadata:
+    def __init__(self,name,description,formatRM,qos,statusType,availability,tags,classType,expiresOn,clientCertRequired,credentialsRequired,preAuthRequired,networkAvailable,contacts,reason,version,createdBy,createdOn,createdByJobId,metadata,numericKeyValueList,textKeyValueList):
+        self.name=name
+        self.description=description
+        self.formatRM=formatRM
+        self.qos=qos
+        self.statusType=statusType
+        self.availability=availability
+        self.tags=tags
+        self.classType=classType
+        self.expiresOn=expiresOn
+        self.clientCertRequired=clientCertRequired
+        self.credentialsRequired=credentialsRequired
+        self.preAuthRequired=preAuthRequired
+        self.networkAvailable=networkAvailable
+        self.contacts=contacts
+        self.reason=reason
+        self.version=version
+        self.createdBy=createdBy
+        self.createdOn=createdOn
+        self.createdByJobId=createdByJobId
+        self.metadata=metadata
+        self.numericKeyValueList=numericKeyValueList
+        self.textKeyValueList=textKeyValueList
+class Service:
+    def __init__(self,serviceId,url,contractUrl,method,timeout,heartbeat,resourceMetadata):
+        self.serviceId=serviceId
+        self.url=url
+        self.contractUrl=contractUrl
+        self.method=method
+        self.timeout=timeout
+        self.heartbeat=heartbeat
+        self.resourceMetadata=resourceMetadata

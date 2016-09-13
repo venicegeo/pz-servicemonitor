@@ -21,7 +21,7 @@ import sys
 import time
 import mongo
 import loop
-
+import common
 
 class HttpMessage:
     statusCode = 0
@@ -52,6 +52,8 @@ class AdminStats:
         self.failed=failed
         self.unknown=unknown
     def update(self,mong):
+        if not common.mongoFound:
+            return
         self.online,self.degraded,self.failed,self.unknown = 0,0,0,0
         services = mong.get_services()
         for service in services:
@@ -72,12 +74,15 @@ class AdminStats:
             else:
                 self.unknown+=1
     def getJSON(self):
+        if not common.mongoFound:
+            return HttpMessage(200,"MongoDB could not be found.").getJSON()
         return json.dumps(self.__dict__, indent=2)
 
 
 app = Flask(__name__)
 mong = mongo.Mongo()
-loopThread = loop.LoopingThread(interval=10,mong=mong)
+mongExists=mong.env_found()
+loopThread = loop.LoopingThread(interval=20,mong=mong)
 
 adminStats = AdminStats()
 
@@ -90,6 +95,10 @@ def adminStat():
     adminStats.update(mong)
     return adminStats.getJSON()
 
+@app.route("/hello")
+def hello():
+    return "<html>Hello world</html>"
+    
 @app.route('/test', methods=['GET','POST'])
 def test():
     if request.method == 'GET':
@@ -109,10 +118,9 @@ def signal_handler(signal, frame):
         loopThread.stop()
         sys.exit(0)
 
-signal.signal(signal.SIGINT, signal_handler)
-print('Press Ctrl+C')
-
 if __name__ =="__main__":
+    signal.signal(signal.SIGINT, signal_handler)
+    print('Press Ctrl+C')
     loopThread.start()
     app.run()
 
