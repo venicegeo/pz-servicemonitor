@@ -16,54 +16,18 @@
 from pymongo import MongoClient
 import requests
 import time
+import mc
 import json
 import os
 import common
 
 ONLINE='ONLINE'
 DEGRADED='DEGRADED'
-OFFLINE='OFFLINE'
 FAILED='FAILED'
+OFFLINE='OFFLINE'
 
 env = os.environ['p-mongodb']
-class ServiceInterface:
-    def __init__(self,**entries):
-        self.__dict__.update(entries)
-class ResourceMetaDataInterface:
-    def __init__(self,**entries):
-        self.__dict__.update(entries)
-class CallInterface:
-    def __init__(self,**entries):
-        self.__dict__.update(entries)
-class Call:
-    class CallDict:
-        def __init__(self,call):
-            self.time=call.time
-            if call.data is None:
-                self.data=None
-            else:
-                self.data=call.data.status_code
-    def __init__(self,time,data):
-        self.time=time
-        self.data=data
-    def toDict(self):
-        return self.CallDict(self).__dict__
-class ServiceStatsInterface:
-    def __init__(self, **entries):
-        self.__dict__.update(entries)
-        self.service_stats = ServiceStats(self._id,self.url,self.calls)
-class ServiceStats:
-    def __init__(self,_id,url,calls=[]):
-        self._id=_id
-        self.url=url
-        self.calls=calls
-    def add_call(self,call):
-        if len(self.calls) is 10:
-            self.calls.remove(self.calls[0])
-        self.calls.append(call.toDict())
-class StatsInterface:
-    def __init__(self,**entries):
-        self.__dict__.update(entries)
+
 def mongo_health_check(url):
     try:
         requests.get("http://%s"%url)
@@ -94,13 +58,13 @@ class Mongo:
         for service in services:
             exists = self.statsCO.find_one({"_id":service._id})
             if exists is None:
-                self.statsCO.insert_one(ServiceStats(service._id,service.url,[]).__dict__)
+                self.statsCO.insert_one(mc.ServiceStats(service._id,service.url,[]).__dict__)
     def get_services(self):
         cursor=self.servicesCO.find()
         services = []
         for doc in cursor:
-            service = ServiceInterface(**doc)
-            meta = ResourceMetaDataInterface(**service.resourceMetadata)
+            service = mc.ServiceInterface(**doc)
+            meta = mc.ResourceMetaDataInterface(**service.resourceMetadata)
             av = None
             try:
                 av = meta.availability
@@ -113,7 +77,7 @@ class Mongo:
         cursor=self.statsCO.find()
         stats = []
         for doc in cursor:
-            stats.append(StatsInterface(**doc))
+            stats.append(mc.StatsInterface(**doc))
         return stats
     def test_service(self, url):
         url=split_url(url)
@@ -128,20 +92,20 @@ class Mongo:
         exists = self.statsCO.find_one({"_id":_id})
         if exists is None:
             return
-        stats = ServiceStatsInterface(**exists)
-        stats.service_stats.add_call(Call(time.time(),result))
+        stats = mc.ServiceStatsInterface(**exists)
+        stats.service_stats.add_call(mc.Call(time.time(),result))
         self.statsCO.replace_one({"_id":_id},stats.service_stats.__dict__)
     def perform_calc(self,_id):
         exists = self.statsCO.find_one({"_id":_id})
         if exists is None:
             return FAILED
-        statsInt = ServiceStatsInterface(**exists)
+        statsInt = mc.ServiceStatsInterface(**exists)
         stats = statsInt.service_stats
         maxi = len(stats.calls)-1
-        print(CallInterface(**stats.calls[maxi]).data,end=" ")
-        if CallInterface(**stats.calls[maxi]).data is not 200:
+        print(mc.CallInterface(**stats.calls[maxi]).data,end=" ")
+        if mc.CallInterface(**stats.calls[maxi]).data is not 200:
             if maxi>2:           
-                if CallInterface(**stats.calls[maxi-1]).data is not 200 and CallInterface(**stats.calls[maxi-2]).data is not 200:
+                if mc.CallInterface(**stats.calls[maxi-1]).data is not 200 and mc.CallInterface(**stats.calls[maxi-2]).data is not 200:
                     return FAILED
                 else:
                     return DEGRADED
@@ -149,7 +113,7 @@ class Mongo:
                 return DEGRADED
         else:
             if maxi>2:
-                if CallInterface(**stats.calls[maxi-1]).data is 200 and CallInterface(**stats.calls[maxi-2]).data is 200:
+                if mc.CallInterface(**stats.calls[maxi-1]).data is 200 and mc.CallInterface(**stats.calls[maxi-2]).data is 200:
                     return ONLINE
                 else:
                     return DEGRADED      
