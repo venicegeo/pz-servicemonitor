@@ -134,6 +134,6 @@ class Mongo:
             self.update_service_stats(service._id,result)
             update = self.perform_calc(service._id)
             print(update)
-            self.servicesCO.update_one({"_id":service._id},format_update(update))    
+            #self.servicesCO.update_one({"_id":service._id},format_update(update))    
         print("Finished run")
 
